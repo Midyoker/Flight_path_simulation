@@ -1,13 +1,44 @@
 import tkinter as tk
+import folium
+from io import BytesIO
+from PIL import Image, ImageTk
 
-def update_parameters():
-    # TODO: Update the parameters (longitude, latitude, altitude, relative velocity)
-    # based on the arrow key inputs and update the GUI accordingly.
-    pass
+
+
+def update_parameters(event):
+    global longitude, latitude, altitude, velocity
+
+    # Define the step size for parameter updates
+    step_size = 0.1
+
+    # Handle the arrow key inputs
+    if event.keysym == "Up":
+        altitude += step_size
+    elif event.keysym == "Down":
+        altitude -= step_size
+    elif event.keysym == "Left":
+        longitude -= step_size
+    elif event.keysym == "Right":
+        longitude += step_size
+
+    # Update the GUI labels with the new parameter values
+    longitude_label.config(text=f"Longitude: {longitude:.2f}")
+    latitude_label.config(text=f"Latitude: {latitude:.2f}")
+    altitude_label.config(text=f"Altitude: {altitude:.2f}")
+    velocity_label.config(text=f"Velocity: {velocity:.2f}")
 
 def on_key_press(event):
-    # TODO: Implement the logic to detect arrow key presses and call the update_parameters() function.
-    pass
+    # Get the key pressed from the event object
+    key = event.keysym
+
+    # Check if the key pressed is an arrow key
+    if key in ["Up", "Down", "Left", "Right"]:
+        # Call the update_parameters() function to adjust the parameters
+        update_parameters(event)
+
+        # Optionally, you can add additional logic or actions here if needed
+
+        # For example, you could trigger other events or animations related to the plane movement or GUI updates.
 
 def main():
     # Create the main application window
@@ -15,13 +46,13 @@ def main():
     root.title("Flight Path Simulation")
 
     # Create a canvas to display the map and plane pointer
-    canvas = tk.Canvas(root, width=800, height=600, bg="white")
+    canvas = tk.Canvas(root, width=800, height=600, bg="black")
     canvas.pack()
 
-    # Load the plane pointer image (replace 'plane.png' with the actual image filename)
-    plane_image = tk.PhotoImage(file="plane.img")
+    # Load the plane pointer image 
+    plane_image = tk.PhotoImage(file="plane.png")
 
-    # Initial parameters (replace these with your starting values)
+    # Initial parameters 
     longitude = 0.0
     latitude = 0.0
     altitude = 10000.0
