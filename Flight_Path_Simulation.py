@@ -49,7 +49,7 @@ def on_key_press(event):
         aircraft.change_vertical_speed(0)  # Reset vertical speed to zero
         aircraft.heading = 45
     elif event.char == 'z':
-        aircraft.toggle_pause()  # Toggle pause movement
+        aircraft.toggle_pause()  #pause commont
 
 def update_plot():
     global data_file
