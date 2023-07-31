@@ -11,10 +11,9 @@ class Aircraft:
         self.altitude = altitude
         self.speed = speed
         self.heading = heading
-        self.vertical_speed = 0  # Initialize vertical speed
-        self.paused = False  # Initialize movement as not paused
-        self.flight_path = [(self.x, self.y)]  # Store the flight path coordinates
-
+        self.vertical_speed = 0 
+        self.paused = False 
+        self.flight_path = [(self.x, self.y)]  
     def update_position(self, time_interval):
         if not self.paused:  # Only update position if not paused
             self.x += self.speed * time_interval * math.cos(math.radians(self.heading))
@@ -58,7 +57,7 @@ def update_plot():
     global data_file
     aircraft.update_position(time_interval)
     aircraft_plot.set_data([aircraft.x], [aircraft.y])
-    flight_path_plot.set_data(*zip(*aircraft.flight_path))  # Unzip the flight_path list and plot it
+    flight_path_plot.set_data(*zip(*aircraft.flight_path))  
     canvas.draw()
     print(f"Altitude: {aircraft.altitude} | Longitude: {aircraft.x} | Latitude: {aircraft.y} | Speed: {aircraft.speed}")
     root.after(int(time_interval * 1000), update_plot)
@@ -76,9 +75,9 @@ ax.set_ylim(ylim)
 ax.set_aspect('equal', adjustable='box')
 ax.imshow(terrain, cmap='terrain', origin='lower', extent=[xlim[0], xlim[1], ylim[0], ylim[1]], alpha=0.7)
 
-aircraft = Aircraft(x=10, y=10, altitude=1000, speed=5, heading=45)  # Example initial values
+aircraft = Aircraft(x=10, y=10, altitude=1000, speed=5, heading=45)  
 aircraft_plot, = ax.plot([aircraft.x], [aircraft.y], 'ro', markersize=10)
-flight_path_plot, = ax.plot([], [], 'g-', linewidth=2)  # Create the plot for the flight path (green line)
+flight_path_plot, = ax.plot([], [], 'g-', linewidth=2) 
 
 time_interval = 0.1  # 0.1 second, for example
 
