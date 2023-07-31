@@ -31,13 +31,13 @@ class Aircraft:
 
 def on_key_press(event):
     if event.keysym == 'Up':
-        aircraft.change_vertical_speed(-5)  # Increase vertical speed
+        aircraft.change_vertical_speed(1)  # Increase vertical speed
     elif event.keysym == 'Down':
-        aircraft.change_vertical_speed(5)  # Decrease vertical speed
+        aircraft.change_vertical_speed(-1)  # Decrease vertical speed
     elif event.keysym == 'Left':
-        aircraft.change_heading(-5)  # Turn left
+        aircraft.change_heading(1)  # Turn left
     elif event.keysym == 'Right':
-        aircraft.change_heading(5)  # Turn right
+        aircraft.change_heading(-1)  # Turn rightz
     elif event.char == 'a':
         aircraft.speed += 1  # Increase speed
     elif event.char == 's':
@@ -45,7 +45,7 @@ def on_key_press(event):
     elif event.char == 'r':
         aircraft.x = 10
         aircraft.y = 10
-        aircraft.altitude = 1000
+        aircraft.altitude = 500
         aircraft.change_vertical_speed(0)  # Reset vertical speed to zero
         aircraft.heading = 45
     elif event.char == 'z':
@@ -85,3 +85,4 @@ root.bind('<KeyPress>', on_key_press)
 root.after(int(time_interval * 1000), update_plot)
 
 root.mainloop()
+r
