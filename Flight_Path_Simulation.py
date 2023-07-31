@@ -12,11 +12,13 @@ class Aircraft:
         self.speed = speed
         self.heading = heading
         self.vertical_speed = 0  # Initialize vertical speed
+        self.paused = False  # Initialize movement as not paused
 
     def update_position(self, time_interval):
-        self.x += self.speed * time_interval * math.cos(math.radians(self.heading))
-        self.y += self.speed * time_interval * math.sin(math.radians(self.heading))
-        self.altitude += self.vertical_speed * time_interval
+        if not self.paused:  # Only update position if not paused
+            self.x += self.speed * time_interval * math.cos(math.radians(self.heading))
+            self.y += self.speed * time_interval * math.sin(math.radians(self.heading))
+            self.altitude += self.vertical_speed * time_interval
 
     def change_heading(self, angle_change):
         self.heading += angle_change
@@ -24,21 +26,33 @@ class Aircraft:
     def change_vertical_speed(self, speed_change):
         self.vertical_speed += speed_change
 
+    def toggle_pause(self):
+        self.paused = not self.paused
+
 def on_key_press(event):
     if event.keysym == 'Up':
-        aircraft.change_vertical_speed(5)  # Increase vertical speed
+        aircraft.change_vertical_speed(-5)  # Increase vertical speed
     elif event.keysym == 'Down':
-        aircraft.change_vertical_speed(-5)  # Decrease vertical speed
+        aircraft.change_vertical_speed(5)  # Decrease vertical speed
     elif event.keysym == 'Left':
         aircraft.change_heading(-5)  # Turn left
     elif event.keysym == 'Right':
         aircraft.change_heading(5)  # Turn right
     elif event.char == 'a':
-        aircraft.speed += 1  # Increase speed with A
+        aircraft.speed += 1  # Increase speed
     elif event.char == 's':
-        aircraft.speed -= 1  # Decrease speed with B
+        aircraft.speed -= 1  # Decrease speed
+    elif event.char == 'r':
+        aircraft.x = 10
+        aircraft.y = 10
+        aircraft.altitude = 1000
+        aircraft.change_vertical_speed(0)  # Reset vertical speed to zero
+        aircraft.heading = 45
+    elif event.char == 'z':
+        aircraft.toggle_pause()  # Toggle pause movement
 
 def update_plot():
+    global data_file
     aircraft.update_position(time_interval)
     aircraft_plot.set_data([aircraft.x], [aircraft.y])
     canvas.draw()
@@ -50,7 +64,7 @@ root.title("Flight Path Simulation")
 
 xlim, ylim = (0, 100), (0, 100)
 
-terrain = np.random.randint(0, 100, size=(xlim[1], ylim[1]))
+terrain = np.random.randint(0, 500, size=(xlim[1], ylim[1]))
 
 fig, ax = plt.subplots()
 ax.set_xlim(xlim)
