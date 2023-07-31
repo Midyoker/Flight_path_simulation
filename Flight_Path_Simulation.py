@@ -11,14 +11,15 @@ class Aircraft:
         self.altitude = altitude
         self.speed = speed
         self.heading = heading
-        self.vertical_speed = 0  # Initialize vertical speed
-        self.paused = False  # Initialize movement as not paused
-
+        self.vertical_speed = 0 
+        self.paused = False 
+        self.flight_path = [(self.x, self.y)]  
     def update_position(self, time_interval):
         if not self.paused:  # Only update position if not paused
             self.x += self.speed * time_interval * math.cos(math.radians(self.heading))
             self.y += self.speed * time_interval * math.sin(math.radians(self.heading))
             self.altitude += self.vertical_speed * time_interval
+            self.flight_path.append((self.x, self.y))  # Add current position to flight path
 
     def change_heading(self, angle_change):
         self.heading += angle_change
@@ -37,7 +38,7 @@ def on_key_press(event):
     elif event.keysym == 'Left':
         aircraft.change_heading(1)  # Turn left
     elif event.keysym == 'Right':
-        aircraft.change_heading(-1)  # Turn rightz
+        aircraft.change_heading(-1)  # Turn right
     elif event.char == 'a':
         aircraft.speed += 1  # Increase speed
     elif event.char == 's':
@@ -48,6 +49,7 @@ def on_key_press(event):
         aircraft.altitude = 0
         aircraft.change_vertical_speed(0)  # Reset vertical speed to zero
         aircraft.heading = 45
+        aircraft.flight_path = [(aircraft.x, aircraft.y)]  # Clear the flight path
     elif event.char == 'z':
         aircraft.toggle_pause()  # Toggle pause movement
 
@@ -55,16 +57,17 @@ def update_plot():
     global data_file
     aircraft.update_position(time_interval)
     aircraft_plot.set_data([aircraft.x], [aircraft.y])
+    flight_path_plot.set_data(*zip(*aircraft.flight_path))  
     canvas.draw()
-    print(f"Altitude: {aircraft.altitude} | (X): {aircraft.x} | (Y): {aircraft.y} | Speed: {aircraft.speed}")
+    print(f"Altitude: {aircraft.altitude} | Longitude: {aircraft.x} | Latitude: {aircraft.y} | Speed: {aircraft.speed}")
     root.after(int(time_interval * 1000), update_plot)
 
 root = tk.Tk()
 root.title("Flight Path Simulation")
 
-xlim, ylim = (0, 500), (0, 500)
+xlim, ylim = (0, 100), (0, 100)
 
-terrain = np.random.randint(0,100, size=(xlim[1], ylim[1]))
+terrain = np.random.randint(0, 500, size=(xlim[1], ylim[1]))
 
 fig, ax = plt.subplots()
 ax.set_xlim(xlim)
@@ -72,8 +75,9 @@ ax.set_ylim(ylim)
 ax.set_aspect('equal', adjustable='box')
 ax.imshow(terrain, cmap='terrain', origin='lower', extent=[xlim[0], xlim[1], ylim[0], ylim[1]], alpha=0.7)
 
-aircraft = Aircraft(x=10, y=10, altitude=1000, speed=5, heading=45)  # Example initial values
+aircraft = Aircraft(x=10, y=10, altitude=1000, speed=5, heading=45)  
 aircraft_plot, = ax.plot([aircraft.x], [aircraft.y], 'ro', markersize=10)
+flight_path_plot, = ax.plot([], [], 'g-', linewidth=2) 
 
 time_interval = 0.1  # 0.1 second, for example
 
@@ -85,3 +89,4 @@ root.bind('<KeyPress>', on_key_press)
 root.after(int(time_interval * 1000), update_plot)
 
 root.mainloop()
+
