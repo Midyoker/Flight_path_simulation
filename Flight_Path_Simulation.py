@@ -2,7 +2,12 @@ import tkinter as tk
 import math
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from PIL import Image, ImageTk
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
+import requests
+from io import BytesIO
+
+xlim, ylim = (0, 1000),(0, 1000)
 
 class Aircraft:
     def __init__(self, x, y, altitude, speed, heading):
@@ -85,19 +90,76 @@ def update_plot():
     canvas.draw()
     info_label.config(text=f"Altitude: {aircraft.altitude} | Longitude: {aircraft.x} | Latitude: {aircraft.y} | Speed: {aircraft.speed}")
     root.after(int(time_interval * 1000), update_plot)
+    
+def download_map_tile():
+    # Replace with the desired latitude, longitude, and zoom level
+    lat, lon, zoom = 37.7749, -122.4194, 10
+    url = f"https://tile.openstreetmap.org/{zoom}/{lat}/{lon}.png"
+    response = requests.get(url)
+    
+    # Check if the response contains valid image data
+    if response.status_code == 200 and response.content:
+        try:
+            map_image = Image.open(BytesIO(response.content))
+            return ImageTk.PhotoImage(map_image)
+        except:
+            print("Error: Invalid image format or content.")
+            return None
+    else:
+        print("Error: Unable to fetch map tile.")
+        return None
+    
+combined_image = None
+def create_combined_image():
+    global combined_image
+
+    # Fetch the map tile and terrain data
+    map_image = download_map_tile()
+    terrain = np.random.randint(0, 500, size=(xlim[1], ylim[1]))
+
+    # Combine the map image and terrain using PIL
+    if map_image:
+        map_image = map_image.resize((xlim[1], ylim[1]))  # Resize map image to match terrain size
+        map_image = ImageTk.PhotoImage(map_image)
+
+        # Create a blank image with a white background
+        blank_image = Image.new("RGB", (xlim[1], ylim[1]), "white")
+        blank_image.paste(map_image, (0, 0), map_image)  # Paste map image over the blank image
+        combined_image = Image.alpha_composite(Image.fromarray(terrain), blank_image)
+
+        # Convert the combined image to a numpy array for plotting with matplotlib
+        combined_image_array = np.array(combined_image)
+
+        # Display the combined image as the background map
+        ax.imshow(combined_image_array, extent=[0, xlim[1], 0, ylim[1]], origin='upper', alpha=1.0)
+
+    else:
+        # If map tile cannot be fetched, use only the terrain
+        ax.imshow(terrain, cmap='terrain', origin='lower', extent=[xlim[0], xlim[1], ylim[0], ylim[1]], alpha=0.7)
+
+    canvas.draw()
+
 
 root = tk.Tk()
-root.title("Flight Path Simulation")
-
-xlim, ylim = (0, 1000), (0, 1000)
-
-terrain = np.random.randint(0, 500, size=(xlim[1], ylim[1]))
+root.title("Map Background Example")
 
 fig, ax = plt.subplots()
 ax.set_xlim(xlim)
 ax.set_ylim(ylim)
 ax.set_aspect('equal', adjustable='box')
-ax.imshow(terrain, cmap='terrain', origin='lower', extent=[xlim[0], xlim[1], ylim[0], ylim[1]], alpha=0.7)
+
+# Create a canvas to display the matplotlib figure
+canvas = FigureCanvasTkAgg(fig, master=root)
+canvas.draw()
+
+# Add the canvas to the main window
+canvas.get_tk_widget().place(x=0, y=0, relwidth=1, relheight=1)
+
+# Call create_combined_image once to initialize the background
+create_combined_image()
+
+# Call create_combined_image once to initialize the background
+create_combined_image()
 
 aircraft = Aircraft(x=10, y=10, altitude=1000, speed=5, heading=45)  
 aircraft_plot, = ax.plot([aircraft.x], [aircraft.y], 'ro', markersize=10)
@@ -106,7 +168,7 @@ flight_path_plot, = ax.plot([], [], 'g-', linewidth=2)
 time_interval = 0.1  # 0.1 second, for example
 
 canvas = FigureCanvasTkAgg(fig, master=root)
-canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
+canvas.get_tk_widget().place(x=0, y=0, relwidth=1, relheight=1)
 
 # Create a label to display aircraft information
 info_label = tk.Label(root, text="", font=("Arial", 12))
