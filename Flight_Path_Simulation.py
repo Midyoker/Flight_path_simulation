@@ -16,8 +16,25 @@ class Aircraft:
         self.flight_path = [(self.x, self.y)]  
     def update_position(self, time_interval):
         if not self.paused:  # Only update position if not paused
-            self.x += self.speed * time_interval * math.cos(math.radians(self.heading))
-            self.y += self.speed * time_interval * math.sin(math.radians(self.heading))
+            new_x = self.x + self.speed * time_interval * math.cos(math.radians(self.heading))
+            new_y = self.y + self.speed * time_interval * math.sin(math.radians(self.heading))
+            
+            # Boundary check for longitude (x-axis)
+            if 0 <= new_x <= xlim[1]:
+                self.x = new_x
+            elif new_x < 0:
+                self.x = 0
+            else:
+                self.x = xlim[1]
+
+            # Boundary check for latitude (y-axis)
+            if 0 <= new_y <= ylim[1]:
+                self.y = new_y
+            elif new_y < 0:
+                self.y = 0
+            else:
+                self.y = ylim[1]
+
             self.altitude += self.vertical_speed * time_interval
             self.flight_path.append((self.x, self.y))  # Add current position to flight path
 
@@ -53,19 +70,26 @@ def on_key_press(event):
     elif event.char == 'z':
         aircraft.toggle_pause()  # Toggle pause movement
 
+def on_mouse_scroll(event):
+    # Zoom-in and zoom-out using the mouse scroll event
+    zoom_factor = 0.9 if event.delta < 0 else 1.1
+    ax.set_xlim(ax.get_xlim()[0] * zoom_factor, ax.get_xlim()[1] * zoom_factor)
+    ax.set_ylim(ax.get_ylim()[0] * zoom_factor, ax.get_ylim()[1] * zoom_factor)
+    canvas.draw()
+
 def update_plot():
     global data_file
     aircraft.update_position(time_interval)
     aircraft_plot.set_data([aircraft.x], [aircraft.y])
     flight_path_plot.set_data(*zip(*aircraft.flight_path))  
     canvas.draw()
-    print(f"Altitude: {aircraft.altitude} | Longitude: {aircraft.x} | Latitude: {aircraft.y} | Speed: {aircraft.speed}")
+    info_label.config(text=f"Altitude: {aircraft.altitude} | Longitude: {aircraft.x} | Latitude: {aircraft.y} | Speed: {aircraft.speed}")
     root.after(int(time_interval * 1000), update_plot)
 
 root = tk.Tk()
 root.title("Flight Path Simulation")
 
-xlim, ylim = (0, 100), (0, 100)
+xlim, ylim = (0, 1000), (0, 1000)
 
 terrain = np.random.randint(0, 500, size=(xlim[1], ylim[1]))
 
@@ -84,9 +108,13 @@ time_interval = 0.1  # 0.1 second, for example
 canvas = FigureCanvasTkAgg(fig, master=root)
 canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
 
+# Create a label to display aircraft information
+info_label = tk.Label(root, text="", font=("Arial", 12))
+info_label.pack()
+
 root.bind('<KeyPress>', on_key_press)
+root.bind('<MouseWheel>', on_mouse_scroll)  # Bind the mouse scroll event
 
 root.after(int(time_interval * 1000), update_plot)
 
 root.mainloop()
-
