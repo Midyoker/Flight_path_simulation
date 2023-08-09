@@ -1,13 +1,9 @@
 import tkinter as tk
 import math
 import matplotlib.pyplot as plt
-import numpy as np
-from PIL import Image, ImageTk
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
-import requests
-from io import BytesIO
-
-xlim, ylim = (0, 1000),(0, 1000)
+import matplotlib.image as mpimg
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.transforms import Affine2D
 
 class Aircraft:
     def __init__(self, x, y, altitude, speed, heading):
@@ -16,15 +12,15 @@ class Aircraft:
         self.altitude = altitude
         self.speed = speed
         self.heading = heading
-        self.vertical_speed = 0 
-        self.paused = False 
-        self.flight_path = [(self.x, self.y)]  
+        self.vertical_speed = 0
+        self.paused = False
+        self.flight_path = [(self.x, self.y)]
+
     def update_position(self, time_interval):
-        if not self.paused:  # Only update position if not paused
+        if not self.paused:
             new_x = self.x + self.speed * time_interval * math.cos(math.radians(self.heading))
             new_y = self.y + self.speed * time_interval * math.sin(math.radians(self.heading))
-            
-            # Boundary check for longitude (x-axis)
+
             if 0 <= new_x <= xlim[1]:
                 self.x = new_x
             elif new_x < 0:
@@ -32,7 +28,6 @@ class Aircraft:
             else:
                 self.x = xlim[1]
 
-            # Boundary check for latitude (y-axis)
             if 0 <= new_y <= ylim[1]:
                 self.y = new_y
             elif new_y < 0:
@@ -41,142 +36,78 @@ class Aircraft:
                 self.y = ylim[1]
 
             self.altitude += self.vertical_speed * time_interval
-            self.flight_path.append((self.x, self.y))  # Add current position to flight path
+            self.flight_path.append((self.x, self.y))
 
-    def change_heading(self, angle_change):
-        self.heading += angle_change
+def on_key(event):
+    key = event.keysym
+    if key == 'Up':
+        aircraft.vertical_speed += 1
+    elif key == 'Down':
+        aircraft.vertical_speed -= 1
+    elif key == 'Left':
+        aircraft.heading += 10
+    elif key == 'Right':
+        aircraft.heading -= 10
+    elif key == 'a':
+        aircraft.speed += 1
+    elif key == 's':
+        aircraft.speed -= 1
+    elif key == 'p':
+        toggle_pause()
 
-    def change_vertical_speed(self, speed_change):
-        self.vertical_speed += speed_change
+def toggle_pause():
+    aircraft.paused = not aircraft.paused
 
-    def toggle_pause(self):
-        self.paused = not self.paused
+def main():
+    global aircraft
+    global xlim, ylim, ax, canvas
 
-def on_key_press(event):
-    if event.keysym == 'Up':
-        aircraft.change_vertical_speed(1)  # Increase vertical speed
-    elif event.keysym == 'Down':
-        aircraft.change_vertical_speed(-1)  # Decrease vertical speed
-    elif event.keysym == 'Left':
-        aircraft.change_heading(1)  # Turn left
-    elif event.keysym == 'Right':
-        aircraft.change_heading(-1)  # Turn right
-    elif event.char == 'a':
-        aircraft.speed += 1  # Increase speed
-    elif event.char == 's':
-        aircraft.speed -= 1  # Decrease speed
-    elif event.char == 'r':
-        aircraft.x = 0
-        aircraft.y = 0
-        aircraft.altitude = 0
-        aircraft.change_vertical_speed(0)  # Reset vertical speed to zero
-        aircraft.heading = 45
-        aircraft.flight_path = [(aircraft.x, aircraft.y)]  # Clear the flight path
-    elif event.char == 'z':
-        aircraft.toggle_pause()  #pause commont
+    root = tk.Tk()
+    root.title("Flight Path Simulation")
 
-def on_mouse_scroll(event):
-    # Zoom-in and zoom-out using the mouse scroll event
-    zoom_factor = 0.9 if event.delta < 0 else 1.1
-    ax.set_xlim(ax.get_xlim()[0] * zoom_factor, ax.get_xlim()[1] * zoom_factor)
-    ax.set_ylim(ax.get_ylim()[0] * zoom_factor, ax.get_ylim()[1] * zoom_factor)
-    canvas.draw()
+    xlim, ylim = (0, 500), (0, 500)
 
-def update_plot():
-    global data_file
-    aircraft.update_position(time_interval)
-    aircraft_plot.set_data([aircraft.x], [aircraft.y])
-    flight_path_plot.set_data(*zip(*aircraft.flight_path))  
-    canvas.draw()
-    info_label.config(text=f"Altitude: {aircraft.altitude} | Longitude: {aircraft.x} | Latitude: {aircraft.y} | Speed: {aircraft.speed}")
+    fig, ax = plt.subplots()
+    ax.set_xlim(xlim)
+    ax.set_ylim(ylim)
+    ax.set_aspect('equal', adjustable='box')
+
+    terrain_img = mpimg.imread("mapImage.png")
+    ax.imshow(terrain_img, extent=[0, xlim[1], 0, ylim[1]])
+
+    aircraft = Aircraft(x=0, y=0, altitude=0, speed=1, heading=45)
+    aircraft_img = mpimg.imread('aircraft.png')
+    aircraft_image = ax.imshow(aircraft_img, extent=[aircraft.x - 10, aircraft.x + 10, aircraft.y - 10, aircraft.y + 10], origin='upper')
+
+    time_interval = 0.1
+
+    canvas = FigureCanvasTkAgg(fig, master=root)
+    canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
+
+    info_label = tk.Label(root, text="", font=("Arial", 12))
+    info_label.pack()
+
+    flight_path_plot, = ax.plot([], [], 'g-', linewidth=2)  # Flight path plot
+
+    def update_plot():
+        aircraft.update_position(time_interval)
+
+        aircraft_image.set_extent([aircraft.x - 10, aircraft.x + 10, aircraft.y - 10, aircraft.y + 10])
+        trans = Affine2D().rotate_deg(90 - aircraft.heading)
+        aircraft_image.set_transform(trans + ax.transData)
+
+        flight_path_plot.set_data(*zip(*aircraft.flight_path))
+
+        canvas.draw()
+
+        info_label.config(text=f"Altitude: {aircraft.altitude:.2f} | X-coordinate: {aircraft.x:.2f} | Y-coordinate: {aircraft.y:.2f} | Speed: {aircraft.speed:.2f}")
+        root.after(int(time_interval * 1000), update_plot)
+
+    root.bind('<KeyPress>', on_key)
+
     root.after(int(time_interval * 1000), update_plot)
-    
-def download_map_tile():
-    # Replace with the desired latitude, longitude, and zoom level
-    lat, lon, zoom = 37.7749, -122.4194, 10
-    url = f"https://tile.openstreetmap.org/{zoom}/{lat}/{lon}.png"
-    response = requests.get(url)
-    
-    # Check if the response contains valid image data
-    if response.status_code == 200 and response.content:
-        try:
-            map_image = Image.open(BytesIO(response.content))
-            return ImageTk.PhotoImage(map_image)
-        except:
-            print("Error: Invalid image format or content.")
-            return None
-    else:
-        print("Error: Unable to fetch map tile.")
-        return None
-    
-combined_image = None
-def create_combined_image():
-    global combined_image
 
-    # Fetch the map tile and terrain data
-    map_image = download_map_tile()
-    terrain = np.random.randint(0, 500, size=(xlim[1], ylim[1]))
+    root.mainloop()
 
-    # Combine the map image and terrain using PIL
-    if map_image:
-        map_image = map_image.resize((xlim[1], ylim[1]))  # Resize map image to match terrain size
-        map_image = ImageTk.PhotoImage(map_image)
-
-        # Create a blank image with a white background
-        blank_image = Image.new("RGB", (xlim[1], ylim[1]), "white")
-        blank_image.paste(map_image, (0, 0), map_image)  # Paste map image over the blank image
-        combined_image = Image.alpha_composite(Image.fromarray(terrain), blank_image)
-
-        # Convert the combined image to a numpy array for plotting with matplotlib
-        combined_image_array = np.array(combined_image)
-
-        # Display the combined image as the background map
-        ax.imshow(combined_image_array, extent=[0, xlim[1], 0, ylim[1]], origin='upper', alpha=1.0)
-
-    else:
-        # If map tile cannot be fetched, use only the terrain
-        ax.imshow(terrain, cmap='terrain', origin='lower', extent=[xlim[0], xlim[1], ylim[0], ylim[1]], alpha=0.7)
-
-    canvas.draw()
-
-
-root = tk.Tk()
-root.title("Map Background Example")
-
-fig, ax = plt.subplots()
-ax.set_xlim(xlim)
-ax.set_ylim(ylim)
-ax.set_aspect('equal', adjustable='box')
-
-# Create a canvas to display the matplotlib figure
-canvas = FigureCanvasTkAgg(fig, master=root)
-canvas.draw()
-
-# Add the canvas to the main window
-canvas.get_tk_widget().place(x=0, y=0, relwidth=1, relheight=1)
-
-# Call create_combined_image once to initialize the background
-create_combined_image()
-
-# Call create_combined_image once to initialize the background
-create_combined_image()
-
-aircraft = Aircraft(x=10, y=10, altitude=1000, speed=5, heading=45)  
-aircraft_plot, = ax.plot([aircraft.x], [aircraft.y], 'ro', markersize=10)
-flight_path_plot, = ax.plot([], [], 'g-', linewidth=2) 
-
-time_interval = 0.1  # 0.1 second, for example
-
-canvas = FigureCanvasTkAgg(fig, master=root)
-canvas.get_tk_widget().place(x=0, y=0, relwidth=1, relheight=1)
-
-# Create a label to display aircraft information
-info_label = tk.Label(root, text="", font=("Arial", 12))
-info_label.pack()
-
-root.bind('<KeyPress>', on_key_press)
-root.bind('<MouseWheel>', on_mouse_scroll)  # Bind the mouse scroll event
-
-root.after(int(time_interval * 1000), update_plot)
-
-root.mainloop()
+if __name__ == "__main__":
+    main()
