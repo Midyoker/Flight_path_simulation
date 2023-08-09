@@ -73,7 +73,7 @@ def on_key_press(event):
         aircraft.heading = 45
         aircraft.flight_path = [(aircraft.x, aircraft.y)]  # Clear the flight path
     elif event.char == 'z':
-        aircraft.toggle_pause()  # Toggle pause movement
+        aircraft.toggle_pause()  #pause commont
 
 def on_mouse_scroll(event):
     # Zoom-in and zoom-out using the mouse scroll event
