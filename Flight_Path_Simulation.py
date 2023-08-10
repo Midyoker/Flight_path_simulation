@@ -21,33 +21,11 @@ class Aircraft:
             new_x = self.x + self.speed * time_interval * math.cos(math.radians(self.heading))
             new_y = self.y + self.speed * time_interval * math.sin(math.radians(self.heading))
 
-            if 0 <= new_x <= xlim[1]:
-                self.x = new_x
-            elif new_x < 0:
-                self.x = 0
-            else:
-                self.x = xlim[1]
-
-            if 0 <= new_y <= ylim[1]:
-                self.y = new_y
-            elif new_y < 0:
-                self.y = 0
-            else:
-                self.y = ylim[1]
+            self.x = min(max(new_x, 0), xlim[1])
+            self.y = min(max(new_y, 0), ylim[1])
 
             self.altitude += self.vertical_speed * time_interval
             self.flight_path.append((self.x, self.y))
-
-
-def reset_aircraft():
-    aircraft.x = 0
-    aircraft.y = 0
-    aircraft.altitude = 0
-    aircraft.speed = 1
-    aircraft.heading = 45
-    aircraft.vertical_speed = 0
-    aircraft.flight_path = [(aircraft.x, aircraft.y)]
-
 
 def on_key(event):
     key = event.keysym
@@ -65,34 +43,62 @@ def on_key(event):
         aircraft.speed -= 1
     elif key == 'p':
         toggle_pause()
-    elif key == 'r':  # Add this condition for the reset key
+    elif key == 'z':
+        zoom_in()
+    elif key == 'x':
+        zoom_out()
+    elif key == 'r':
         reset_aircraft()
+      
 
 def toggle_pause():
     aircraft.paused = not aircraft.paused
 
+def reset_aircraft():
+    aircraft.x = 100
+    aircraft.y = 100
+    aircraft.altitude = 100
+    aircraft.speed = 5
+    aircraft.heading = 45
+    aircraft.vertical_speed = 0
+    aircraft.flight_path = [(aircraft.x, aircraft.y)]
+
+def on_scroll(event):
+    if event.delta > 0:
+        zoom_in()
+    else:
+        zoom_out()
+
+def zoom_in():
+    ax.set_xlim(ax.get_xlim()[0] * 0.9, ax.get_xlim()[1] * 0.9)
+    ax.set_ylim(ax.get_ylim()[0] * 0.9, ax.get_ylim()[1] * 0.9)
+    canvas.draw()
+
+def zoom_out():
+    ax.set_xlim(ax.get_xlim()[0] * 1.1, ax.get_xlim()[1] * 1.1)
+    ax.set_ylim(ax.get_ylim()[0] * 1.1, ax.get_ylim()[1] * 1.1)
+    canvas.draw()
+
 def main():
     global aircraft
-    global xlim, ylim, ax, canvas
+    global ax, canvas
 
     root = tk.Tk()
     root.title("Flight Path Simulation")
 
-    xlim, ylim = (0, 500), (0, 500)
-
     fig, ax = plt.subplots()
-    ax.set_xlim(xlim)
-    ax.set_ylim(ylim)
+    ax.set_xlim(0, 1000)
+    ax.set_ylim(0, 1000)
     ax.set_aspect('equal', adjustable='box')
 
     terrain_img = mpimg.imread("mapImage.png")
-    ax.imshow(terrain_img, extent=[0, xlim[1], 0, ylim[1]])
+    ax.imshow(terrain_img, extent=[0, 5000, 0, 5000])
 
-    aircraft = Aircraft(x=0, y=0, altitude=0, speed=1, heading=45)
+    aircraft = Aircraft(x=100, y=100, altitude=100, speed=5, heading=45)
     aircraft_img = mpimg.imread('aircraft.png')
     aircraft_image = ax.imshow(aircraft_img, extent=[aircraft.x - 10, aircraft.x + 10, aircraft.y - 10, aircraft.y + 10], origin='upper')
 
-    time_interval = 0.1
+    time_interval = 0.05
 
     canvas = FigureCanvasTkAgg(fig, master=root)
     canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
@@ -114,7 +120,7 @@ def main():
 
             flight_path_plot.set_data(*zip(*aircraft.flight_path))
 
-            canvas.draw_idle()  # Use draw_idle() instead of draw() to avoid blocking
+            canvas.draw_idle()
 
         info_label.config(
             text=f"Altitude: {aircraft.altitude:.2f} | X-coordinate: {aircraft.x:.2f} | Y-coordinate: {aircraft.y:.2f} | Speed: {aircraft.speed:.2f}")
@@ -122,11 +128,11 @@ def main():
         root.after(int(time_interval * 1000), update_plot)
 
     root.bind('<KeyPress>', on_key)
+    root.bind('<MouseWheel>', on_scroll)
 
-    root.after(int(time_interval * 1000), update_plot)  # Start the update loop
+    root.after(int(time_interval * 1000), update_plot)
     root.mainloop()
 
 if __name__ == "__main__":
+    xlim, ylim = (0, 1000), (0, 1000)
     main()
-
-
