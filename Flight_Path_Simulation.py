@@ -1,9 +1,11 @@
 import tkinter as tk
+import time
 import math
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.transforms import Affine2D
+
 
 class Aircraft:
     def __init__(self, x, y, altitude, speed, heading):
@@ -27,6 +29,7 @@ class Aircraft:
             self.altitude += self.vertical_speed * time_interval
             self.flight_path.append((self.x, self.y))
 
+
 def on_key(event):
     key = event.keysym
     if key == 'Up':
@@ -49,10 +52,11 @@ def on_key(event):
         zoom_out()
     elif key == 'r':
         reset_aircraft()
-      
+
 
 def toggle_pause():
     aircraft.paused = not aircraft.paused
+
 
 def reset_aircraft():
     aircraft.x = 100
@@ -63,21 +67,25 @@ def reset_aircraft():
     aircraft.vertical_speed = 0
     aircraft.flight_path = [(aircraft.x, aircraft.y)]
 
+
 def on_scroll(event):
     if event.delta > 0:
         zoom_in()
     else:
         zoom_out()
 
+
 def zoom_in():
     ax.set_xlim(ax.get_xlim()[0] * 0.9, ax.get_xlim()[1] * 0.9)
     ax.set_ylim(ax.get_ylim()[0] * 0.9, ax.get_ylim()[1] * 0.9)
     canvas.draw()
 
+
 def zoom_out():
     ax.set_xlim(ax.get_xlim()[0] * 1.1, ax.get_xlim()[1] * 1.1)
     ax.set_ylim(ax.get_ylim()[0] * 1.1, ax.get_ylim()[1] * 1.1)
     canvas.draw()
+
 
 def main():
     global aircraft
@@ -96,7 +104,9 @@ def main():
 
     aircraft = Aircraft(x=100, y=100, altitude=100, speed=5, heading=45)
     aircraft_img = mpimg.imread('aircraft.png')
-    aircraft_image = ax.imshow(aircraft_img, extent=[aircraft.x - 10, aircraft.x + 10, aircraft.y - 10, aircraft.y + 10], origin='upper')
+    aircraft_image = ax.imshow(aircraft_img,
+                               extent=[aircraft.x - 10, aircraft.x + 10, aircraft.y - 10, aircraft.y + 10],
+                               origin='upper')
 
     time_interval = 0.05
 
@@ -125,13 +135,22 @@ def main():
         info_label.config(
             text=f"Altitude: {aircraft.altitude:.2f} | X-coordinate: {aircraft.x:.2f} | Y-coordinate: {aircraft.y:.2f} | Speed: {aircraft.speed:.2f}")
 
+        # Save data every 5 minutes
+        if int(time.time() - start_time) % 300 == 0:
+            with open("flight_data.txt", "a") as file:
+                file.write(
+                    f"Altitude: {aircraft.altitude:.2f} | X-coordinate: {aircraft.x:.2f} | Y-coordinate: {aircraft.y:.2f} | Speed: {aircraft.speed:.2f}\n")
+
         root.after(int(time_interval * 1000), update_plot)
+
+    start_time = time.time()  # Record the start time
 
     root.bind('<KeyPress>', on_key)
     root.bind('<MouseWheel>', on_scroll)
 
     root.after(int(time_interval * 1000), update_plot)
     root.mainloop()
+
 
 if __name__ == "__main__":
     xlim, ylim = (0, 1000), (0, 1000)
