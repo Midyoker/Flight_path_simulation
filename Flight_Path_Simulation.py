@@ -49,8 +49,7 @@ def on_key(event):
         zoom_out()
     elif key == 'r':
         reset_aircraft()
-      
-
+    
 def toggle_pause():
     aircraft.paused = not aircraft.paused
 
