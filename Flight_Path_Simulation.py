@@ -1,9 +1,8 @@
 import tkinter as tk
 import math
 import matplotlib.pyplot as plt
-import matplotlib.image as mpimg
+import numpy as np
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from matplotlib.transforms import Affine2D
 
 class Aircraft:
     def __init__(self, x, y, altitude, speed, heading):
@@ -12,102 +11,83 @@ class Aircraft:
         self.altitude = altitude
         self.speed = speed
         self.heading = heading
-        self.vertical_speed = 0
-        self.paused = False
-        self.flight_path = [(self.x, self.y)]
-
+        self.vertical_speed = 0 
+        self.paused = False 
+        self.flight_path = [(self.x, self.y)]  
     def update_position(self, time_interval):
-        if not self.paused:
-            new_x = self.x + self.speed * time_interval * math.cos(math.radians(self.heading))
-            new_y = self.y + self.speed * time_interval * math.sin(math.radians(self.heading))
-
-            if 0 <= new_x <= xlim[1]:
-                self.x = new_x
-            elif new_x < 0:
-                self.x = 0
-            else:
-                self.x = xlim[1]
-
-            if 0 <= new_y <= ylim[1]:
-                self.y = new_y
-            elif new_y < 0:
-                self.y = 0
-            else:
-                self.y = ylim[1]
-
+        if not self.paused:  # Only update position if not paused
+            self.x += self.speed * time_interval * math.cos(math.radians(self.heading))
+            self.y += self.speed * time_interval * math.sin(math.radians(self.heading))
             self.altitude += self.vertical_speed * time_interval
-            self.flight_path.append((self.x, self.y))
+            self.flight_path.append((self.x, self.y))  # Add current position to flight path
 
-def on_key(event):
-    key = event.keysym
-    if key == 'Up':
-        aircraft.vertical_speed += 1
-    elif key == 'Down':
-        aircraft.vertical_speed -= 1
-    elif key == 'Left':
-        aircraft.heading += 10
-    elif key == 'Right':
-        aircraft.heading -= 10
-    elif key == 'a':
-        aircraft.speed += 1
-    elif key == 's':
-        aircraft.speed -= 1
-    elif key == 'p':
-        toggle_pause()
+    def change_heading(self, angle_change):
+        self.heading += angle_change
 
-def toggle_pause():
-    aircraft.paused = not aircraft.paused
+    def change_vertical_speed(self, speed_change):
+        self.vertical_speed += speed_change
 
-def main():
-    global aircraft
-    global xlim, ylim, ax, canvas
+    def toggle_pause(self):
+        self.paused = not self.paused
 
-    root = tk.Tk()
-    root.title("Flight Path Simulation")
+def on_key_press(event):
+    if event.keysym == 'Up':
+        aircraft.change_vertical_speed(1)  # Increase vertical speed
+    elif event.keysym == 'Down':
+        aircraft.change_vertical_speed(-1)  # Decrease vertical speed
+    elif event.keysym == 'Left':
+        aircraft.change_heading(1)  # Turn left
+    elif event.keysym == 'Right':
+        aircraft.change_heading(-1)  # Turn right
+    elif event.char == 'a':
+        aircraft.speed += 1  # Increase speed
+    elif event.char == 's':
+        aircraft.speed -= 1  # Decrease speed
+    elif event.char == 'r':
+        aircraft.x = 0
+        aircraft.y = 0
+        aircraft.altitude = 0
+        aircraft.change_vertical_speed(0)  # Reset vertical speed to zero
+        aircraft.heading = 45
+        aircraft.flight_path = [(aircraft.x, aircraft.y)]  # Clear the flight path
+    elif event.char == 'z':
+        aircraft.toggle_pause()  # Toggle pause movement
 
-    xlim, ylim = (0, 500), (0, 500)
-
-    fig, ax = plt.subplots()
-    ax.set_xlim(xlim)
-    ax.set_ylim(ylim)
-    ax.set_aspect('equal', adjustable='box')
-
-    terrain_img = mpimg.imread("mapImage.png")
-    ax.imshow(terrain_img, extent=[0, xlim[1], 0, ylim[1]])
-
-    aircraft = Aircraft(x=0, y=0, altitude=0, speed=1, heading=45)
-    aircraft_img = mpimg.imread('aircraft.png')
-    aircraft_image = ax.imshow(aircraft_img, extent=[aircraft.x - 10, aircraft.x + 10, aircraft.y - 10, aircraft.y + 10], origin='upper')
-
-    time_interval = 0.1
-
-    canvas = FigureCanvasTkAgg(fig, master=root)
-    canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
-
-    info_label = tk.Label(root, text="", font=("Arial", 12))
-    info_label.pack()
-
-    flight_path_plot, = ax.plot([], [], 'g-', linewidth=2)  # Flight path plot
-
-    def update_plot():
-        aircraft.update_position(time_interval)
-
-        aircraft_image.set_extent([aircraft.x - 10, aircraft.x + 10, aircraft.y - 10, aircraft.y + 10])
-        trans = Affine2D().rotate_deg(90 - aircraft.heading)
-        aircraft_image.set_transform(trans + ax.transData)
-
-        flight_path_plot.set_data(*zip(*aircraft.flight_path))
-
-        canvas.draw()
-
-        info_label.config(text=f"Altitude: {aircraft.altitude:.2f} | X-coordinate: {aircraft.x:.2f} | Y-coordinate: {aircraft.y:.2f} | Speed: {aircraft.speed:.2f}")
-        root.after(int(time_interval * 1000), update_plot)
-
-    root.bind('<KeyPress>', on_key)
-
+def update_plot():
+    global data_file
+    aircraft.update_position(time_interval)
+    aircraft_plot.set_data([aircraft.x], [aircraft.y])
+    flight_path_plot.set_data(*zip(*aircraft.flight_path))  
+    canvas.draw()
+    print(f"Altitude: {aircraft.altitude} | Longitude: {aircraft.x} | Latitude: {aircraft.y} | Speed: {aircraft.speed}")
     root.after(int(time_interval * 1000), update_plot)
 
-    root.mainloop()
+root = tk.Tk()
+root.title("Flight Path Simulation")
 
-if __name__ == "__main__":
-    main()
+xlim, ylim = (0, 100), (0, 100)
+
+terrain = np.random.randint(0, 500, size=(xlim[1], ylim[1]))
+
+fig, ax = plt.subplots()
+ax.set_xlim(xlim)
+ax.set_ylim(ylim)
+ax.set_aspect('equal', adjustable='box')
+ax.imshow(terrain, cmap='terrain', origin='lower', extent=[xlim[0], xlim[1], ylim[0], ylim[1]], alpha=0.7)
+
+aircraft = Aircraft(x=10, y=10, altitude=1000, speed=5, heading=45)  
+aircraft_plot, = ax.plot([aircraft.x], [aircraft.y], 'ro', markersize=10)
+flight_path_plot, = ax.plot([], [], 'g-', linewidth=2) 
+
+time_interval = 0.1  # 0.1 second, for example
+
+canvas = FigureCanvasTkAgg(fig, master=root)
+canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
+
+root.bind('<KeyPress>', on_key_press)
+
+root.after(int(time_interval * 1000), update_plot)
+
+root.mainloop()
+
+
