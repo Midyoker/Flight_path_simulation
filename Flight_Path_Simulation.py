@@ -4,8 +4,6 @@ import math
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from matplotlib.transforms import Affine2D
-
 
 class Aircraft:
     def __init__(self, x, y, altitude, speed, heading):
@@ -95,18 +93,14 @@ def main():
     root.title("Flight Path Simulation")
 
     fig, ax = plt.subplots()
-    ax.set_xlim(0, 1000)
-    ax.set_ylim(0, 1000)
+    ax.set_xlim(0, 5000)
+    ax.set_ylim(0, 5000)
     ax.set_aspect('equal', adjustable='box')
 
     terrain_img = mpimg.imread("mapImage.png")
     ax.imshow(terrain_img, extent=[0, 5000, 0, 5000])
 
     aircraft = Aircraft(x=100, y=100, altitude=100, speed=5, heading=45)
-    aircraft_img = mpimg.imread('aircraft.png')
-    aircraft_image = ax.imshow(aircraft_img,
-                               extent=[aircraft.x - 10, aircraft.x + 10, aircraft.y - 10, aircraft.y + 10],
-                               origin='upper')
 
     time_interval = 0.05
 
@@ -117,6 +111,7 @@ def main():
     info_label.pack()
 
     flight_path_plot, = ax.plot([], [], 'g-', linewidth=2)  # Flight path plot
+    aircraft_position_dot, = ax.plot([], [], 'ro')  # Aircraft position dot
 
     def update_plot():
         old_position = (aircraft.x, aircraft.y)
@@ -124,18 +119,15 @@ def main():
         aircraft.update_position(time_interval)
 
         if (aircraft.x, aircraft.y) != old_position:
-            aircraft_image.set_extent([aircraft.x - 10, aircraft.x + 10, aircraft.y - 10, aircraft.y + 10])
-            trans = Affine2D().rotate_deg(90 - aircraft.heading)
-            aircraft_image.set_transform(trans + ax.transData)
-
             flight_path_plot.set_data(*zip(*aircraft.flight_path))
+            aircraft_position_dot.set_data(aircraft.x, aircraft.y)  # Update aircraft position dot
 
             canvas.draw_idle()
 
         info_label.config(
             text=f"Altitude: {aircraft.altitude:.2f} | X-coordinate: {aircraft.x:.2f} | Y-coordinate: {aircraft.y:.2f} | Speed: {aircraft.speed:.2f}")
 
-        # Save data every 5 minutes
+       # Save data every 5 minutes
         if int(time.time() - start_time) % 300 == 0:
             with open("flight_data.txt", "a") as file:
                 file.write(
@@ -144,7 +136,6 @@ def main():
         root.after(int(time_interval * 1000), update_plot)
 
     start_time = time.time()  # Record the start time
-
     root.bind('<KeyPress>', on_key)
     root.bind('<MouseWheel>', on_scroll)
 
@@ -153,5 +144,5 @@ def main():
 
 
 if __name__ == "__main__":
-    xlim, ylim = (0, 1000), (0, 1000)
+    xlim, ylim = (0, 5000), (0, 5000)
     main()
